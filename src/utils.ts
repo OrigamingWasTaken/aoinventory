@@ -3,39 +3,18 @@ import cv from '@techstark/opencv-js';
 import {$, sleep} from 'bun';
 import Jimp from 'jimp';
 import {loadImage as loadimg, createCanvas} from '@napi-rs/canvas';
-import sd from "screenshot-desktop"
+import sd from 'screenshot-desktop';
 
 export type Match = null | {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    center?: {
-        x: number;
-        y: number;
-    };
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+	center?: {
+		x: number;
+		y: number;
+	};
 };
-
-// export function screenCaptureToFile(robotScreenPic: robot.Bitmap): Promise<Jimp> {
-// 	return new Promise((resolve, reject) => {
-// 		try {
-// 			const image = new Jimp(robotScreenPic.width, robotScreenPic.height);
-// 			let pos = 0;
-// 			image.scan(0, 0, image.bitmap.width, image.bitmap.height, (x, y, idx) => {
-// 				/* eslint-disable no-plusplus */
-// 				image.bitmap.data[idx + 2] = robotScreenPic.image.readUInt8(pos++);
-// 				image.bitmap.data[idx + 1] = robotScreenPic.image.readUInt8(pos++);
-// 				image.bitmap.data[idx + 0] = robotScreenPic.image.readUInt8(pos++);
-// 				image.bitmap.data[idx + 3] = robotScreenPic.image.readUInt8(pos++);
-// 				/* eslint-enable no-plusplus */
-// 			});
-// 			resolve(image);
-// 		} catch (e) {
-// 			console.error(e);
-// 			reject(e);
-// 		}
-// 	});
-// }
 
 export async function loadImage(src: string | Buffer): Promise<cv.Mat> {
 	const image = await loadimg(src);
@@ -59,7 +38,11 @@ export async function saveMatToFile(mat: cv.Mat, filePath: string): Promise<void
 	await jimpImage.writeAsync(filePath);
 }
 
-export async function locateImage(imagePath: string, threshold: number = 0.7,drawOutput = false): Promise<Match | null> {
+export async function locateImage(
+	imagePath: string,
+	threshold: number = 0.7,
+	drawOutput = false
+): Promise<Match | null> {
 	console.log(3);
 	await sleep(1000);
 	console.log(2);
@@ -80,21 +63,28 @@ export async function locateImage(imagePath: string, threshold: number = 0.7,dra
 	cv.matchTemplate(screenshotMat, templateMat, dest, cv.TM_SQDIFF_NORMED, mask);
 	cv.threshold(dest, dest, 0.01, 1, cv.THRESH_BINARY);
 
-	const result = cv.minMaxLoc(dest,mask);
+	const screen_ratio = parseFloat(Bun.env.SCREEN_RATIO || '0.5');
+	const result = cv.minMaxLoc(dest, mask);
 	const match: Match = {
-        x: result.minLoc.x,
-        y: result.minLoc.y,
-        width: templateMat.cols,
-        height: templateMat.rows,
-    };
-    match.center = {
-        x: match.x + (match.width * 0.5),
-        y: match.y + (match.height * 0.5),
-    };
+		x: result.minLoc.x * screen_ratio,
+		y: result.minLoc.y * screen_ratio,
+		width: templateMat.cols,
+		height: templateMat.rows,
+	};
+	match.center = {
+		x: (match.x + match.width * 0.5) * screen_ratio,
+		y: (match.y + match.height * 0.5) * screen_ratio,
+	};
 
 	if (drawOutput) {
 		const color = new cv.Scalar(0, 255, 0, 255);
-		cv.rectangle(screenshotMat, new cv.Point(match.x, match.y), new cv.Point(match.x + templateMat.cols, match.y + templateMat.rows), color, 2);
+		cv.rectangle(
+			screenshotMat,
+			new cv.Point(match.x, match.y),
+			new cv.Point(match.x + templateMat.cols, match.y + templateMat.rows),
+			color,
+			2
+		);
 		await saveMatToFile(screenshotMat, 'draw_output.png');
 	}
 
@@ -103,26 +93,4 @@ export async function locateImage(imagePath: string, threshold: number = 0.7,dra
 	}
 
 	return match;
-
-	// const result = new cv.Mat();
-	// cv.matchTemplate(screenshotMat, templateMat, result, cv.TM_CCOEFF_NORMED);
-
-	// // Find the position of the best match, for some reasons, the types are wrong.
-	// console.log("b")
-	// // @ts-expect-error
-	// const {minVal, maxVal, minLoc, maxLoc} = cv.minMaxLoc(result);
-	// // Clean up
-	// templateMat.delete();
-	// result.delete();
-	// // $`rm -rf .aoinv`;
-	// console.log("c")
-
-	// saveMatToFile(screenshotMat,"teee.png")
-	// console.log("d")
-	// screenshotMat.delete();
-	// if (maxVal < threshold) {
-	// 	return null;
-	// }
-
-	// return {x: maxLoc.x * 0.5, y: maxLoc.y * 0.5};
 }

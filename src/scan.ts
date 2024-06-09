@@ -5,7 +5,7 @@ import {sleep} from 'bun';
 
 export async function main() {
 	// while (!(await locateImage(filterImage, 0.7))) {
-	// 	await sleep(1);
+	// 	await sleep(100);
 	// }
 	const located = await locateImage(filterImage, 0.7, true);
     console.log(located)
