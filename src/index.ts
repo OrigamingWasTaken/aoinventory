@@ -2,8 +2,8 @@ import {createInterface} from 'readline';
 import {version} from '../package.json';
 import figlet from 'figlet';
 import chalk from 'chalk';
-import {main} from './scan';
-import {saveMatToFile} from './utils';
+import {scanInventory} from './scan';
+import {saveMatToFile} from './opencv';
 import sd from 'screenshot-desktop';
 import {$, sleep} from 'bun';
 
@@ -61,7 +61,7 @@ rl.on('line', async (input) => {
 			break;
 		case 'scan':
 			console.log('Scanning inventory...');
-			await main();
+			await scanInventory();
 			// Your logic for scanning inventory here
 			break;
 		case 'shop':
